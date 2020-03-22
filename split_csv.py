@@ -15,9 +15,9 @@ import re
 # two digits describing a day. Note that we limit the month and day numbers to
 # those available in a year (but we don't check the entire date for
 # inconsistencies, so 2011-02-31 would be considered valid).
-_iso_date_re = re.compile(r'(?P<year>\d{4})-(?P<month>0\d|1[012])-(?P<day>[012]\d|3[01])')
+_iso_date_re = re.compile(r'(?P<year>\d{4})-(?P<month>0[1-9]|1[012])-(?P<day>[012][1-9]|3[01])')
 
-class IteratorAdapter:
+class _IteratorAdapter:
     """An iterator which returns the same value over and over. Nifty for those
     APIs which only accepts iterators.
     """
@@ -48,9 +48,11 @@ class _EntryProcessor:
         # This is a trick to circumvent the CSV reader API which requires an
         # iterator as input. We create an iterator which we can feed with one
         # line at a time and sets the reader to read from that.
-        self._reader_feeder = IteratorAdapter()
+        self._reader_feeder = _IteratorAdapter()
         self._csv_reader = csv.reader(self._reader_feeder, csv_dialect)
-        if header is not None:
+        if header is None:
+            self._column_index = int(column_id)
+        else:
             self._reader_feeder.set(header)
             header_fields = next(self._csv_reader)
             try:
@@ -119,6 +121,7 @@ _parser.add_argument('column', type=str, help='Index or name of the splitting fi
 _parser.add_argument('-d', '--dialect', choices=csv.list_dialects(),
     help='Selects a specific CSV dialect to parse.'
         ' By default, the dialect is automatically detected.')
+# TODO: add no-date-split
 _parser.add_argument('--date-split', type=bool, default=True,
     help='Treats the column as an ISO date and tries to split data by month.'
         ' Enabled by default.')
